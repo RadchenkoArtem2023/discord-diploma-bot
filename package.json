@@ -1,0 +1,21 @@
+{
+  "name": "discord-diploma-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "deploy": "node deploy-commands.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@discordjs/rest": "^2.6.0",
+    "canvas": "^3.2.0",
+    "discord-api-types": "^0.38.33",
+    "discord.js": "^14.24.2",
+    "dotenv": "^17.2.3"
+  }
+}
