@@ -112,7 +112,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       });
 
       ctx.fillStyle = "#000";
-      ctx.font = "24px Sans";
+      ctx.font = "bold 28px Sans";
       ctx.textAlign = "center";
       ctx.fillText(
         `Дата видачі: ${formattedDate}`,
@@ -125,15 +125,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
       ctx.font = "48px LTDiploma";
       ctx.textAlign = "center";
 
-      // Імʼя, Прізвище та Гендер (стать)
+      // Імʼя, Прізвище та Статіка
       ctx.textAlign = "center";
       ctx.fillStyle = "#000";
 
       // Основний шрифт для імені та прізвища
-      ctx.font = "48px LTDiploma";
+      ctx.font = " bold 48px LTDiploma";
 
       if (gender) {
-        // Якщо вказано стать — виводимо ім’я та прізвище великим, а стать — меншим шрифтом на тому ж рівні
+        // Якщо вказано статік — виводимо ім’я та прізвище великим, а статік — меншим шрифтом на тому ж рівні
         const nameWidth = ctx.measureText(`${surname} ${name}`).width;
         const genderFontSize = 24; // у 2 рази менше
         ctx.font = `bold ${genderFontSize}px Sans`;
@@ -146,13 +146,17 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         // Прізвище + Ім’я
         ctx.font = "48px LTDiploma";
-        ctx.fillText(`${surname} ${name}`, startX + nameWidth / 2, baseY);
+        ctx.fillText(`${surname} ${name}`, startX + nameWidth / 2, baseY + 40);
 
-        // Стать
+        // Статік
         ctx.font = `bold ${genderFontSize}px Sans`;
-        ctx.fillText(gender, startX + nameWidth + genderWidth / 2 + 40, baseY);
+        ctx.fillText(
+          gender,
+          startX + nameWidth + genderWidth / 2 + 40,
+          baseY + 40
+        );
       } else {
-        // Якщо стать не вказана — лише ім’я і прізвище по центру
+        // Якщо статік не вказана — лише ім’я і прізвище по центру
         ctx.font = "48px LTDiploma";
         ctx.fillText(`${surname} ${name}`, canvas.width / 2, canvas.height / 2);
       }
