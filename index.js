@@ -68,6 +68,23 @@ client.on(Events.InteractionCreate, async (interaction) => {
     const fullName = `${surname} ${name}`;
     const outputFile = `diploma_${interaction.user.id}.png`;
 
+    // --- Нумерація дипломів ---
+    let diplomaNumber = 1;
+    const counterFile = "./counter.json";
+
+    try {
+      if (fs.existsSync(counterFile)) {
+        const data = JSON.parse(fs.readFileSync(counterFile, "utf-8"));
+        diplomaNumber = data.lastNumber + 1;
+      }
+      fs.writeFileSync(
+        counterFile,
+        JSON.stringify({ lastNumber: diplomaNumber })
+      );
+    } catch (err) {
+      console.error("❌ Помилка при оновленні лічильника:", err);
+    }
+
     try {
       const template = await Canvas.loadImage("./diploma_template.png");
       const canvas = Canvas.createCanvas(template.width, template.height);
@@ -76,18 +93,47 @@ client.on(Events.InteractionCreate, async (interaction) => {
       // Фон
       ctx.drawImage(template, 0, 0);
 
+      // Номер диплома (лівий нижній кут)
+      ctx.fillStyle = "#000";
+      ctx.font = "bold 28px Sans";
+      ctx.textAlign = "left";
+      ctx.fillText(`Диплом №${diplomaNumber}`, 80, canvas.height - 60);
+
       // Текст — налаштуй координати під шаблон
       ctx.fillStyle = "#000";
       ctx.font = "bold 48px Sans";
       ctx.textAlign = "center";
 
-      // Імʼя та прізвище
-      ctx.fillText(fullName, canvas.width / 2, canvas.height / 2);
+      // Імʼя, Прізвище та Гендер (стать)
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#000";
 
-      // Стать (нижче)
+      // Основний шрифт для імені та прізвища
+      ctx.font = "bold 48px Sans";
+
       if (gender) {
-        ctx.font = "32px Sans";
-        ctx.fillText(gender, canvas.width / 2, canvas.height / 2 + 60);
+        // Якщо вказано стать — виводимо ім’я та прізвище великим, а стать — меншим шрифтом на тому ж рівні
+        const nameWidth = ctx.measureText(`${surname} ${name}`).width;
+        const genderFontSize = 24; // у 2 рази менше
+        ctx.font = `bold ${genderFontSize}px Sans`;
+
+        const genderWidth = ctx.measureText(gender).width;
+        const totalWidth = nameWidth + genderWidth + 40; // 40px проміжок між ними
+
+        const startX = (canvas.width - totalWidth) / 2;
+        const baseY = canvas.height / 2;
+
+        // Прізвище + Ім’я
+        ctx.font = "bold 48px Sans";
+        ctx.fillText(`${surname} ${name}`, startX + nameWidth / 2, baseY);
+
+        // Стать
+        ctx.font = `bold ${genderFontSize}px Sans`;
+        ctx.fillText(gender, startX + nameWidth + genderWidth / 2 + 40, baseY);
+      } else {
+        // Якщо стать не вказана — лише ім’я і прізвище по центру
+        ctx.font = "bold 48px Sans";
+        ctx.fillText(`${surname} ${name}`, canvas.width / 2, canvas.height / 2);
       }
 
       // Генерація файлу
@@ -101,7 +147,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const attachment = new AttachmentBuilder(buffer, { name: outputFile });
 
       await channel.send({
-        content: `🎓 Диплом для **${fullName}**`,
+        content: `🎓 **Диплом №${diplomaNumber}** — для **${fullName}**`,
         files: [attachment],
       });
 
