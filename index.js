@@ -11,6 +11,10 @@ import {
 } from "discord.js";
 import Canvas from "canvas";
 import fs from "fs";
+import path from "path";
+
+// Підключення власного шрифту
+Canvas.registerFont(path.resolve("./LTDiploma.otf"), { family: "LTDiploma" });
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -97,11 +101,28 @@ client.on(Events.InteractionCreate, async (interaction) => {
       ctx.fillStyle = "#000";
       ctx.font = "bold 28px Sans";
       ctx.textAlign = "left";
-      ctx.fillText(`Диплом №${diplomaNumber}`, 80, canvas.height - 60);
+      ctx.fillText(`Диплом №${diplomaNumber}`, 500, canvas.height - 160);
+
+      // Дата видачі (внизу по центру)
+      const currentDate = new Date();
+      const formattedDate = currentDate.toLocaleDateString("uk-UA", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+
+      ctx.fillStyle = "#000";
+      ctx.font = "24px Sans";
+      ctx.textAlign = "center";
+      ctx.fillText(
+        `Дата видачі: ${formattedDate}`,
+        canvas.width / 2,
+        canvas.height - 160
+      );
 
       // Текст — налаштуй координати під шаблон
       ctx.fillStyle = "#000";
-      ctx.font = "bold 48px Sans";
+      ctx.font = "48px LTDiploma";
       ctx.textAlign = "center";
 
       // Імʼя, Прізвище та Гендер (стать)
@@ -109,7 +130,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       ctx.fillStyle = "#000";
 
       // Основний шрифт для імені та прізвища
-      ctx.font = "bold 48px Sans";
+      ctx.font = "48px LTDiploma";
 
       if (gender) {
         // Якщо вказано стать — виводимо ім’я та прізвище великим, а стать — меншим шрифтом на тому ж рівні
@@ -124,7 +145,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const baseY = canvas.height / 2;
 
         // Прізвище + Ім’я
-        ctx.font = "bold 48px Sans";
+        ctx.font = "48px LTDiploma";
         ctx.fillText(`${surname} ${name}`, startX + nameWidth / 2, baseY);
 
         // Стать
@@ -132,7 +153,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         ctx.fillText(gender, startX + nameWidth + genderWidth / 2 + 40, baseY);
       } else {
         // Якщо стать не вказана — лише ім’я і прізвище по центру
-        ctx.font = "bold 48px Sans";
+        ctx.font = "48px LTDiploma";
         ctx.fillText(`${surname} ${name}`, canvas.width / 2, canvas.height / 2);
       }
 
