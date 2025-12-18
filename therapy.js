@@ -321,13 +321,26 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const chunks = [];
       for (const r of rows.slice(0, 10)) {
         const created = new Date(r.created_at).toLocaleString("uk-UA");
+        const description =
+          r.description.length > 200
+            ? r.description.substring(0, 197) + "..."
+            : r.description;
+        const operation =
+          r.operation.length > 100
+            ? r.operation.substring(0, 97) + "..."
+            : r.operation;
         chunks.push(
-          `**№${r.id}** — ${r.full_name} (Static: ${r.static}) — ${created}\nОперація: ${r.operation}\nОпис: ${r.description}`
+          `**№${r.id}** — ${r.full_name} (Static: ${r.static}) — ${created}\nОперація: ${operation}\nОпис: ${description}`
         );
       }
 
+      let content = chunks.join("\n\n");
+      if (content.length > 2000) {
+        content = content.substring(0, 1997) + "...";
+      }
+
       await interaction.reply({
-        content: chunks.join("\n\n"),
+        content: content,
         ephemeral: true,
       });
 
@@ -350,12 +363,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
           ephemeral: true,
         });
 
-      const out = rows
+      let out = rows
         .map((r) => {
           const created = new Date(r.created_at).toLocaleString("uk-UA");
           return `**№${r.id}** — ${r.full_name} (Static: ${r.static}) — ${created}`;
         })
         .join("\n");
+
+      if (out.length > 2000) {
+        out = out.substring(0, 1997) + "...";
+      }
 
       await interaction.reply({
         content: out,
