@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS reports (
 
 // (2) assets
 const assetsDir = path.resolve("./assets");
-const logoPath = path.join(assetsDir, "logo.png");
+const logoPath = path.join(assetsDir, "zvit.jpg");
 const signaturePath = path.join(assetsDir, "signature.png");
 const stampPath = path.join(assetsDir, "stamp.png");
 
@@ -131,126 +131,138 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const reportId = info.lastInsertRowid;
 
       // генерація JPG
-      const templateW = 1200;
-      const templateH = 1200;
+      const templateW = 2970;
+      const templateH = 2100;
       const canvas = Canvas.createCanvas(templateW, templateH);
       const ctx = canvas.getContext("2d");
 
-      ctx.fillStyle = "#afd6fdff";
-      ctx.fillRect(0, 0, templateW, templateH);
+      // Завантажуємо фон zvit.jpg на весь canvas
+      if (fs.existsSync(logoPath)) {
+        try {
+          const bgImage = await Canvas.loadImage(logoPath);
+          ctx.drawImage(bgImage, 0, 0, templateW, templateH);
+        } catch {}
+      }
 
       ctx.strokeStyle = "#2c3e50";
       ctx.lineWidth = 6;
       ctx.strokeRect(30, 30, templateW - 60, templateH - 60);
 
-      if (fs.existsSync(logoPath)) {
-        try {
-          ctx.drawImage(await Canvas.loadImage(logoPath), 60, 60, 160, 160);
-        } catch {}
-      }
-
-      ctx.fillStyle = "#0b3d91";
-      ctx.font = "bold 48px Sans";
+      ctx.fillStyle = "#300f54";
+      ctx.font = "bold 56px Sans";
       ctx.textAlign = "center";
       ctx.fillText(
         "МІНІСТЕРСТВО ОХОРОНИ ЗДОРОВʼЯ ШТАТУ UKRAINE GTA5",
-        240,
-        100
+        templateW / 2,
+        600
       );
 
-      ctx.font = "bold 32px Sans";
-      ctx.fillStyle = "#000";
-      ctx.fillText("Відділення ТЕРАПІЇ", 240, 130);
+      ctx.font = "bold 48px Sans";
+      ctx.fillStyle = "#300f54";
+      ctx.fillText("Відділення ТЕРАПІЇ", templateW / 2, 680);
 
       ctx.font = "bold 48px Sans";
-      ctx.fillStyle = "#000";
-      ctx.fillText("ЗВІТ ПРО ОПЕРАТИВНЕ ВТРУЧАННЯ", templateW / 2, 220);
+      ctx.fillStyle = "#300f54";
+      ctx.fillText("ЗВІТ ПРО ОПЕРАТИВНЕ ВТРУЧАННЯ", templateW / 2, 750);
 
-      ctx.textAlign = "left";
-      ctx.font = "bold 20px Sans";
-      ctx.fillText("Пацієнт:", 80, 300);
+      ctx.textAlign = "center";
+      ctx.font = "bold 32px Sans";
+      ctx.fillText("Пацієнт:", templateW / 2, 800);
 
+      ctx.font = "40px Sans";
+      ctx.fillText(fullName, templateW / 2, 840);
+
+      ctx.font = "bold 32px Sans";
+      ctx.fillText("Static ID:", templateW / 2, 900);
+
+      ctx.font = "40px Sans";
+      ctx.fillText(staticId, templateW / 2, 940);
+
+      ctx.font = "bold 32px Sans";
+      ctx.fillText("Вид оперативного втручання:", templateW / 2, 1000);
+
+      ctx.font = "40px Sans";
+      wrapTextCenter(ctx, operation, templateW / 2, 1040, templateW - 160, 45);
+
+      ctx.font = "bold 32px Sans";
+      ctx.fillText("Короткий опис:", templateW / 2, 1100);
+
+      ctx.font = "32px Sans";
+      wrapTextCenter(
+        ctx,
+        description,
+        templateW / 2,
+        1140,
+        templateW - 300,
+        40
+      );
+
+      ctx.fillStyle = "#300f54";
       ctx.font = "24px Sans";
-      ctx.fillText(fullName, 200, 300);
+      ctx.textAlign = "right";
+      ctx.textBaseline = "bottom";
 
-      ctx.font = "bold 20px Sans";
-      ctx.fillText("Static ID:", 80, 350);
+      const padding = 20;
+      const lineSpacing = 28;
+      ctx.fillText(
+        `Звіт №${reportId}`,
+        canvas.width - padding - 60,
+        canvas.height - padding - lineSpacing - 60
+      );
 
-      ctx.font = "24px Sans";
-      ctx.fillText(staticId, 200, 350);
-
-      ctx.font = "bold 20px Sans";
-      ctx.fillText("Вид оперативного втручання:", 80, 410);
-
-      ctx.font = "20px Sans";
-      wrapText(ctx, operation, 80, 440, templateW - 160, 26);
-
-      ctx.font = "bold 20px Sans";
-      ctx.fillText("Короткий опис:", 80, 540);
-
-      ctx.font = "18px Sans";
-      wrapText(ctx, description, 80, 570, templateW - 160, 24);
-
-      ctx.font = "20px Sans";
-      ctx.textAlign = "left";
-      ctx.fillText(`Звіт №${reportId}`, 80, templateH - 120);
-
-      const formatDate = now.toLocaleDateString("uk-UA", {
+      const currentDate = new Date();
+      const formattedDate = currentDate.toLocaleDateString("uk-UA", {
         day: "2-digit",
         month: "2-digit",
         year: "numeric",
       });
 
-      ctx.textAlign = "center";
+      ctx.fillStyle = "#300f54";
+      ctx.font = "24px Sans";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "bottom";
+
       ctx.fillText(
-        `Дата видачі: ${formatDate}`,
-        templateW / 2,
-        templateH - 120
+        `Дата видачі: ${formattedDate}`,
+        canvas.width - padding - 60,
+        canvas.height - padding - 60
       );
 
       if (fs.existsSync(signaturePath)) {
         try {
+          const sigImg = await Canvas.loadImage(signaturePath);
+          const sigWidth = 240;
+          const sigHeight = 120;
           ctx.drawImage(
-            await Canvas.loadImage(signaturePath),
-            80,
-            templateH - 320,
-            240,
-            120
+            sigImg,
+            templateW / 2 - sigWidth / 2,
+            templateH - 820,
+            sigWidth,
+            sigHeight
           );
         } catch {}
         ctx.font = "16px Sans";
-        ctx.textAlign = "left";
-        ctx.fillText("Підпис лікаря", 80, templateH - 180);
+        ctx.textAlign = "center";
+        ctx.fillText("Підпис лікаря", templateW / 2, templateH - 680);
       }
 
       if (fs.existsSync(stampPath)) {
         try {
+          const stampImg = await Canvas.loadImage(stampPath);
+          const stampSize = 220;
           ctx.drawImage(
-            await Canvas.loadImage(stampPath),
-            templateW - 320,
-            templateH - 380,
-            220,
-            220
+            stampImg,
+            templateW / 2 - stampSize / 2,
+            templateH - 880,
+            stampSize,
+            stampSize
           );
         } catch {}
       }
 
-      const outPath = path.resolve(
-        `./tmp/report_${reportId}_${now.getTime()}.jpg`
-      );
-      if (!fs.existsSync(path.dirname(outPath)))
-        fs.mkdirSync(path.dirname(outPath), { recursive: true });
-
-      const outStream = fs.createWriteStream(outPath);
-      const jpegStream = canvas.createJPEGStream({
+      const buffer = canvas.toBuffer("image/jpeg", {
         quality: 0.9,
-        chromaSubsampling: true,
       });
-      jpegStream.pipe(outStream);
-
-      await new Promise((res, rej) =>
-        outStream.on("finish", res).on("error", rej)
-      );
 
       const channel =
         interaction.channel ||
@@ -258,7 +270,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
           ? await client.channels.fetch(process.env.REPORTS_CHANNEL_ID)
           : null);
 
-      const attachment = new AttachmentBuilder(outPath);
+      const attachment = new AttachmentBuilder(buffer, {
+        name: `report_${reportId}.jpg`,
+      });
 
       await channel.send({
         content: `🧾 Звіт №${reportId} — ${fullName} (Static: ${staticId})`,
@@ -294,7 +308,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
         rows = stmt.all(`%${query}%`);
       } else if (by === "id") {
         const stmt = db.prepare(`SELECT * FROM reports WHERE id = ?`);
-        rows = stmt.all(query);
+        const result = stmt.get(Number(query));
+        rows = result ? [result] : [];
       }
 
       if (!rows.length)
@@ -326,9 +341,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     ) {
       const limit = interaction.options.getInteger("limit") || 5;
 
-      const stmt = db.prepare(
-        `SELECT * FROM reports ORDER BY id DESC LIMIT ?`
-      );
+      const stmt = db.prepare(`SELECT * FROM reports ORDER BY id DESC LIMIT ?`);
       const rows = stmt.all(limit);
 
       if (!rows.length)
@@ -366,25 +379,34 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 });
 
-// --- перенесення тексту для Canvas
-function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+// --- перенесення тексту для Canvas (з центруванням)
+function wrapTextCenter(ctx, text, centerX, startY, maxWidth, lineHeight) {
   const words = text.split(" ");
-  let line = "";
+  let lines = [];
+  let currentLine = "";
 
   for (let n = 0; n < words.length; n++) {
-    const testLine = line + words[n] + " ";
+    const testLine = currentLine + (currentLine ? " " : "") + words[n];
     const metrics = ctx.measureText(testLine);
 
-    if (metrics.width > maxWidth && n > 0) {
-      ctx.fillText(line, x, y);
-      line = words[n] + " ";
-      y += lineHeight;
+    if (metrics.width > maxWidth && currentLine) {
+      lines.push(currentLine);
+      currentLine = words[n];
     } else {
-      line = testLine;
+      currentLine = testLine;
     }
   }
 
-  if (line) ctx.fillText(line, x, y);
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  ctx.textAlign = "center";
+  let y = startY;
+  for (const line of lines) {
+    ctx.fillText(line, centerX, y);
+    y += lineHeight;
+  }
 }
 
 client.login(process.env.TOKEN);
