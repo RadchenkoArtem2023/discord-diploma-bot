@@ -101,11 +101,18 @@ client.on(Events.InteractionCreate, async (interaction) => {
         .setStyle(TextInputStyle.Paragraph)
         .setRequired(true);
 
+      const issuedByInput = new TextInputBuilder()
+        .setCustomId("issued_by")
+        .setLabel("Видано (ПІБ того, хто видає)")
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true);
+
       modal.addComponents(
         new ActionRowBuilder().addComponents(fullNameInput),
         new ActionRowBuilder().addComponents(staticInput),
         new ActionRowBuilder().addComponents(operationInput),
-        new ActionRowBuilder().addComponents(descriptionInput)
+        new ActionRowBuilder().addComponents(descriptionInput),
+        new ActionRowBuilder().addComponents(issuedByInput)
       );
 
       await interaction.showModal(modal);
@@ -127,15 +134,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const description = interaction.fields
         .getTextInputValue("description")
         .trim();
+      const issuedBy = interaction.fields.getTextInputValue("issued_by").trim();
 
       const now = new Date();
       const createdAt = now.toISOString();
-
-      // Отримуємо нік користувача, який створює звіт
-      const issuedBy =
-        interaction.member?.displayName ||
-        interaction.user.displayName ||
-        interaction.user.username;
 
       // запис у БД
       const insert = db.prepare(

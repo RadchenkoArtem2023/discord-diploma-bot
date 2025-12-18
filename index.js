@@ -8,6 +8,7 @@ import {
   ActionRowBuilder,
   AttachmentBuilder,
   Events,
+  MessageFlags,
 } from "discord.js";
 import Canvas from "canvas";
 import fs from "fs";
@@ -18,7 +19,7 @@ Canvas.registerFont(path.resolve("./LTDiploma.otf"), { family: "LTDiploma" });
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
-client.once("ready", () => {
+client.once(Events.ClientReady, () => {
   console.log(`✅ Увійшов як ${client.user.tag}`);
 });
 
@@ -30,18 +31,18 @@ client.on(Events.InteractionCreate, async (interaction) => {
         .setCustomId("diploma_modal")
         .setTitle("Отримати диплом");
 
-      const surnameInput = new TextInputBuilder()
-        .setCustomId("surname")
-        .setLabel("Прізвище")
-        .setStyle(TextInputStyle.Short)
-        .setPlaceholder("Наприклад: Петренко")
-        .setRequired(true);
-
       const nameInput = new TextInputBuilder()
         .setCustomId("name")
         .setLabel("Імʼя")
         .setStyle(TextInputStyle.Short)
         .setPlaceholder("Наприклад: Іван")
+        .setRequired(true);
+
+      const surnameInput = new TextInputBuilder()
+        .setCustomId("surname")
+        .setLabel("Прізвище")
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder("Наприклад: Петренко")
         .setRequired(true);
 
       const genderInput = new TextInputBuilder()
@@ -51,10 +52,17 @@ client.on(Events.InteractionCreate, async (interaction) => {
         .setPlaceholder("Наприклад: 1111")
         .setRequired(false);
 
+      const issuedByInput = new TextInputBuilder()
+        .setCustomId("issued_by")
+        .setLabel("Видано (ПІБ того, хто видає)")
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true);
+
       modal.addComponents(
         new ActionRowBuilder().addComponents(surnameInput),
         new ActionRowBuilder().addComponents(nameInput),
-        new ActionRowBuilder().addComponents(genderInput)
+        new ActionRowBuilder().addComponents(genderInput),
+        new ActionRowBuilder().addComponents(issuedByInput)
       );
 
       await interaction.showModal(modal);
@@ -63,11 +71,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   // --- Крок 2: Обробка даних після модалі ---
   if (interaction.isModalSubmit() && interaction.customId === "diploma_modal") {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    const surname = interaction.fields.getTextInputValue("surname").trim();
     const name = interaction.fields.getTextInputValue("name").trim();
+    const surname = interaction.fields.getTextInputValue("surname").trim();
     const gender = interaction.fields.getTextInputValue("gender")?.trim() || "";
+    const issuedBy = interaction.fields.getTextInputValue("issued_by").trim();
 
     const fullName = `${surname} ${name}`;
     const outputFile = `diploma_${interaction.user.id}.png`;
@@ -130,6 +139,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
         canvas.width - padding,
         canvas.height - padding
       );
+      ctx.fillStyle = "#300f54";
+      ctx.font = "bold 48px Sans";
+      ctx.textAlign = "left";
+      ctx.fillText("Andrii Sage", 270, canvas.height - 180);
+
+      ctx.font = "bold 48px Sans";
+      ctx.textAlign = "center";
+      ctx.fillText(issuedBy, canvas.width / 2 - 160, canvas.height - 180);
 
       // Текст — налаштуй координати під шаблон
       ctx.fillStyle = "#300f54";
@@ -150,12 +167,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
         ctx.font = `bold ${genderFontSize}px Sans`;
 
         const genderWidth = ctx.measureText(gender).width;
-        const totalWidth = nameWidth + genderWidth + 40; // 40px проміжок між ними
+        const spacing = 80; // відстань між ім'ям та статіком
+        const totalWidth = nameWidth + genderWidth + spacing;
 
         const startX = (canvas.width - totalWidth) / 2;
         const baseY = canvas.height / 2;
 
-        // Прізвище + Ім’я
+        // Прізвище + Ім'я
         ctx.font = "56px LTDiploma";
         ctx.fillText(`${surname} ${name}`, startX + nameWidth / 2, baseY + 90);
 
@@ -163,7 +181,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         ctx.font = `bold ${genderFontSize}px Sans`;
         ctx.fillText(
           gender,
-          startX + nameWidth + genderWidth / 2 + 90,
+          startX + nameWidth + spacing + genderWidth / 2,
           baseY + 80
         );
       } else {
