@@ -90,20 +90,29 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
 
     try {
-      const template = await Canvas.loadImage("./diploma_template.png");
+      const template = await Canvas.loadImage("./diploma_template.jpg");
       const canvas = Canvas.createCanvas(template.width, template.height);
       const ctx = canvas.getContext("2d");
 
       // Фон
       ctx.drawImage(template, 0, 0);
 
-      // Номер диплома (лівий нижній кут)
-      ctx.fillStyle = "#000";
-      ctx.font = "bold 28px Sans";
-      ctx.textAlign = "left";
-      ctx.fillText(`Диплом №${diplomaNumber}`, 500, canvas.height - 160);
+      // Номер диплома (правий нижній кут)
+      ctx.fillStyle = "#300f54";
+      ctx.font = "24px Sans";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "bottom";
 
-      // Дата видачі (внизу по центру)
+      const padding = 20;
+      const lineSpacing = 28;
+
+      ctx.fillText(
+        `Диплом №${diplomaNumber}`,
+        canvas.width - padding,
+        canvas.height - padding - lineSpacing
+      );
+
+      // Дата видачі (правий нижній кут під номером диплому)
       const currentDate = new Date();
       const formattedDate = currentDate.toLocaleDateString("uk-UA", {
         day: "2-digit",
@@ -111,26 +120,28 @@ client.on(Events.InteractionCreate, async (interaction) => {
         year: "numeric",
       });
 
-      ctx.fillStyle = "#000";
-      ctx.font = "bold 28px Sans";
-      ctx.textAlign = "center";
+      ctx.fillStyle = "#300f54";
+      ctx.font = "24px Sans";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "bottom";
+
       ctx.fillText(
         `Дата видачі: ${formattedDate}`,
-        canvas.width / 2,
-        canvas.height - 160
+        canvas.width - padding,
+        canvas.height - padding
       );
 
       // Текст — налаштуй координати під шаблон
-      ctx.fillStyle = "#000";
-      ctx.font = "48px LTDiploma";
+      ctx.fillStyle = "#300f54";
+      ctx.font = "56px LTDiploma";
       ctx.textAlign = "center";
 
       // Імʼя, Прізвище та Статіка
       ctx.textAlign = "center";
-      ctx.fillStyle = "#000";
+      ctx.fillStyle = "#300f54";
 
       // Основний шрифт для імені та прізвища
-      ctx.font = " bold 48px LTDiploma";
+      ctx.font = " bold 56px LTDiploma";
 
       if (gender) {
         // Якщо вказано статік — виводимо ім’я та прізвище великим, а статік — меншим шрифтом на тому ж рівні
@@ -145,19 +156,19 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const baseY = canvas.height / 2;
 
         // Прізвище + Ім’я
-        ctx.font = "48px LTDiploma";
-        ctx.fillText(`${surname} ${name}`, startX + nameWidth / 2, baseY + 40);
+        ctx.font = "56px LTDiploma";
+        ctx.fillText(`${surname} ${name}`, startX + nameWidth / 2, baseY + 90);
 
         // Статік
         ctx.font = `bold ${genderFontSize}px Sans`;
         ctx.fillText(
           gender,
-          startX + nameWidth + genderWidth / 2 + 40,
-          baseY + 40
+          startX + nameWidth + genderWidth / 2 + 90,
+          baseY + 80
         );
       } else {
         // Якщо статік не вказана — лише ім’я і прізвище по центру
-        ctx.font = "48px LTDiploma";
+        ctx.font = "56px LTDiploma";
         ctx.fillText(`${surname} ${name}`, canvas.width / 2, canvas.height / 2);
       }
 
