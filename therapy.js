@@ -8,6 +8,7 @@ import {
   TextInputStyle,
   ActionRowBuilder,
   AttachmentBuilder,
+  MessageFlags,
 } from "discord.js";
 import Canvas, { registerFont } from "canvas";
 import fs from "fs";
@@ -24,9 +25,24 @@ CREATE TABLE IF NOT EXISTS reports (
   static TEXT NOT NULL,
   operation TEXT NOT NULL,
   description TEXT NOT NULL,
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  issued_by TEXT
 );
 `);
+
+// Міграція: додаємо колонку issued_by якщо її немає
+try {
+  // Перевіряємо, чи існує колонка
+  const tableInfo = db.prepare(`PRAGMA table_info(reports)`).all();
+  const hasIssuedBy = tableInfo.some((col) => col.name === "issued_by");
+
+  if (!hasIssuedBy) {
+    db.exec(`ALTER TABLE reports ADD COLUMN issued_by TEXT`);
+    console.log("✅ Колонка issued_by додана до таблиці reports");
+  }
+} catch (err) {
+  console.error("Помилка міграції БД:", err);
+}
 
 // (2) assets
 const assetsDir = path.resolve("./assets");
@@ -53,7 +69,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       ) {
         return interaction.reply({
           content: "Ця команда доступна тільки в каналі Терапія.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
 
@@ -101,7 +117,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       interaction.isModalSubmit() &&
       interaction.customId === "op_report_modal"
     ) {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
       const fullName = interaction.fields.getTextInputValue("full_name").trim();
       const staticId = interaction.fields.getTextInputValue("static").trim();
@@ -115,17 +131,24 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const now = new Date();
       const createdAt = now.toISOString();
 
+      // Отримуємо нік користувача, який створює звіт
+      const issuedBy =
+        interaction.member?.displayName ||
+        interaction.user.displayName ||
+        interaction.user.username;
+
       // запис у БД
       const insert = db.prepare(
-        `INSERT INTO reports (full_name, static, operation, description, created_at)
-         VALUES (?, ?, ?, ?, ?)`
+        `INSERT INTO reports (full_name, static, operation, description, created_at, issued_by)
+         VALUES (?, ?, ?, ?, ?, ?)`
       );
       const info = insert.run(
         fullName,
         staticId,
         operation,
         description,
-        createdAt
+        createdAt,
+        issuedBy
       );
 
       const reportId = info.lastInsertRowid;
@@ -196,6 +219,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
         templateW - 300,
         40
       );
+
+      ctx.fillStyle = "#300f54";
+      ctx.font = "bold 48px Sans";
+      ctx.textAlign = "left";
+      ctx.fillText("Andrii Sage", 450, 1820);
+
+      ctx.font = "bold 48px Sans";
+      ctx.textAlign = "center";
+      ctx.fillText(issuedBy, templateW / 2 - 250, 1820);
 
       ctx.fillStyle = "#300f54";
       ctx.font = "24px Sans";
@@ -315,7 +347,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (!rows.length)
         return interaction.reply({
           content: "❗ За запитом нічого не знайдено.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
 
       const chunks = [];
@@ -341,7 +373,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       await interaction.reply({
         content: content,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
 
       return;
@@ -360,7 +392,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (!rows.length)
         return interaction.reply({
           content: "Немає записів.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
 
       let out = rows
@@ -376,7 +408,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       await interaction.reply({
         content: out,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
 
       return;
@@ -389,7 +421,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       } else {
         await interaction.reply({
           content: "❌ Сталася помилка.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
     } catch {}
