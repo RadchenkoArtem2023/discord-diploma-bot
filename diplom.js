@@ -1,0 +1,222 @@
+import "dotenv/config";
+import {
+  Client,
+  GatewayIntentBits,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  ActionRowBuilder,
+  AttachmentBuilder,
+  Events,
+  MessageFlags,
+} from "discord.js";
+import Canvas from "canvas";
+import fs from "fs";
+import path from "path";
+
+// Підключення власного шрифту
+Canvas.registerFont(path.resolve("./LTDiploma.otf"), { family: "LTDiploma" });
+
+const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+
+client.once(Events.ClientReady, () => {
+  console.log(`✅ Увійшов як ${client.user.tag}`);
+});
+
+client.on(Events.InteractionCreate, async (interaction) => {
+  // --- Крок 1: Відображення модалі ---
+  if (interaction.isChatInputCommand()) {
+    if (interaction.commandName === "отримати_диплом") {
+      const modal = new ModalBuilder()
+        .setCustomId("diploma_modal")
+        .setTitle("Отримати диплом");
+
+      const nameInput = new TextInputBuilder()
+        .setCustomId("name")
+        .setLabel("Імʼя")
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder("Наприклад: Іван")
+        .setRequired(true);
+
+      const surnameInput = new TextInputBuilder()
+        .setCustomId("surname")
+        .setLabel("Прізвище")
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder("Наприклад: Петренко")
+        .setRequired(true);
+
+      const genderInput = new TextInputBuilder()
+        .setCustomId("gender")
+        .setLabel("Статік (необовʼязково)")
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder("Наприклад: 1111")
+        .setRequired(false);
+
+      const issuedByInput = new TextInputBuilder()
+        .setCustomId("issued_by")
+        .setLabel("Видано (ПІБ того, хто видає)")
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true);
+
+      modal.addComponents(
+        new ActionRowBuilder().addComponents(surnameInput),
+        new ActionRowBuilder().addComponents(nameInput),
+        new ActionRowBuilder().addComponents(genderInput),
+        new ActionRowBuilder().addComponents(issuedByInput)
+      );
+
+      await interaction.showModal(modal);
+    }
+  }
+
+  // --- Крок 2: Обробка даних після модалі ---
+  if (interaction.isModalSubmit() && interaction.customId === "diploma_modal") {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+    const name = interaction.fields.getTextInputValue("name").trim();
+    const surname = interaction.fields.getTextInputValue("surname").trim();
+    const gender = interaction.fields.getTextInputValue("gender")?.trim() || "";
+    const issuedBy = interaction.fields.getTextInputValue("issued_by").trim();
+
+    const fullName = `${surname} ${name}`;
+    const outputFile = `diploma_${interaction.user.id}.png`;
+
+    // --- Нумерація дипломів ---
+    let diplomaNumber = 1;
+    const counterFile = "./counter.json";
+
+    try {
+      if (fs.existsSync(counterFile)) {
+        const data = JSON.parse(fs.readFileSync(counterFile, "utf-8"));
+        diplomaNumber = data.lastNumber + 1;
+      }
+      fs.writeFileSync(
+        counterFile,
+        JSON.stringify({ lastNumber: diplomaNumber })
+      );
+    } catch (err) {
+      console.error("❌ Помилка при оновленні лічильника:", err);
+    }
+
+    try {
+      const template = await Canvas.loadImage("./assets/diploma_template.jpg");
+      const canvas = Canvas.createCanvas(template.width, template.height);
+      const ctx = canvas.getContext("2d");
+
+      // Фон
+      ctx.drawImage(template, 0, 0);
+
+      // Номер диплома (правий нижній кут)
+      ctx.fillStyle = "#300f54";
+      ctx.font = "24px Sans";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "bottom";
+
+      const padding = 20;
+      const lineSpacing = 28;
+
+      ctx.fillText(
+        `Диплом №${diplomaNumber}`,
+        canvas.width - padding,
+        canvas.height - padding - lineSpacing
+      );
+
+      // Дата видачі (правий нижній кут під номером диплому)
+      const currentDate = new Date();
+      const formattedDate = currentDate.toLocaleDateString("uk-UA", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+
+      ctx.fillStyle = "#300f54";
+      ctx.font = "24px Sans";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "bottom";
+
+      ctx.fillText(
+        `Дата видачі: ${formattedDate}`,
+        canvas.width - padding,
+        canvas.height - padding
+      );
+      ctx.fillStyle = "#300f54";
+      ctx.font = "bold 48px Sans";
+      ctx.textAlign = "left";
+      ctx.fillText("Andrii Sage", 270, canvas.height - 180);
+
+      ctx.font = "bold 48px Sans";
+      ctx.textAlign = "center";
+      ctx.fillText(issuedBy, canvas.width / 2 - 160, canvas.height - 180);
+
+      // Текст — налаштуй координати під шаблон
+      ctx.fillStyle = "#300f54";
+      ctx.font = "56px LTDiploma";
+      ctx.textAlign = "center";
+
+      // Імʼя, Прізвище та Статіка
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#300f54";
+
+      // Основний шрифт для імені та прізвища
+      ctx.font = " bold 56px LTDiploma";
+
+      if (gender) {
+        // Якщо вказано статік — виводимо ім’я та прізвище великим, а статік — меншим шрифтом на тому ж рівні
+        const nameWidth = ctx.measureText(`${surname} ${name}`).width;
+        const genderFontSize = 24; // у 2 рази менше
+        ctx.font = `bold ${genderFontSize}px Sans`;
+
+        const genderWidth = ctx.measureText(gender).width;
+        const spacing = 80; // відстань між ім'ям та статіком
+        const totalWidth = nameWidth + genderWidth + spacing;
+
+        const startX = (canvas.width - totalWidth) / 2;
+        const baseY = canvas.height / 2;
+
+        // Прізвище + Ім'я
+        ctx.font = "56px LTDiploma";
+        ctx.fillText(`${surname} ${name}`, startX + nameWidth / 2, baseY + 90);
+
+        // Статік
+        ctx.font = `bold ${genderFontSize}px Sans`;
+        ctx.fillText(
+          gender,
+          startX + nameWidth + spacing + genderWidth / 2,
+          baseY + 80
+        );
+      } else {
+        // Якщо статік не вказана — лише ім’я і прізвище по центру
+        ctx.font = "56px LTDiploma";
+        ctx.fillText(`${surname} ${name}`, canvas.width / 2, canvas.height / 2);
+      }
+
+      // Генерація файлу
+      const buffer = canvas.toBuffer("image/png");
+      fs.writeFileSync(outputFile, buffer);
+
+      // Надсилання у канал
+      const channel = await client.channels.fetch(
+        process.env.TARGET_CHANNEL_ID
+      );
+      const attachment = new AttachmentBuilder(buffer, { name: outputFile });
+
+      await channel.send({
+        content: `🎓 **Диплом №${diplomaNumber}** — для **${fullName}**`,
+        files: [attachment],
+      });
+
+      await interaction.editReply({
+        content: "✅ Диплом згенеровано та відправлено у канал!",
+      });
+
+      fs.unlinkSync(outputFile); // видаляємо файл після відправки
+    } catch (err) {
+      console.error(err);
+      await interaction.editReply({
+        content: "❌ Помилка при створенні диплома.",
+      });
+    }
+  }
+});
+
+client.login(process.env.TOKEN);
